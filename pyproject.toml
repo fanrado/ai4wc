@@ -20,4 +20,6 @@ dependencies = [
 ]
 
 [tool.setuptools.packages.find]
-where = ["ai4wc"]
+where = ["."]
+include = ["ai4wc"]
+exclude = ["tests", "notebooks", "models"]
