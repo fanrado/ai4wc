@@ -31,4 +31,14 @@ Feel free to fork the repository and submit pull requests.
 --------------------------------------------------------
 
 # To do list
-- [ ] 
+- [ ]  ai4wc source code for vision transformer model
+    - [ ] data preparation
+    - [ ] model definition
+    - [ ] training script : supervised learning using neutrino events
+    - [ ] evaluation script
+    - [ ] utility functions for optimization and visualization
+- [ ] tests
+    - [ ] extraction of an attention map from a vision transformer model
+- [ ] documentation
+    - [ ] docstrings
+    - [ ] overleaf documentation : technical background and details 
