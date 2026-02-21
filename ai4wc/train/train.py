@@ -6,6 +6,7 @@ import numpy as np
 import zlib
 from PIL import Image
 from ai4wc.models.nuViT import nuViT
+from ai4wc.utils.utils import get_device
 import torchvision.transforms as transforms
 
 class CVNDataset(Dataset):
@@ -120,10 +121,12 @@ def run_validation(val_loader, model, device, loss_fn):
     return val_loss_epoch, val_accuracy_epoch
 
 if __name__ == '__main__':
-    path_to_train = '/home/rrazakami/work/WC/ai4wc/notebooks/data_cvn/train'
-    path_to_val = '/home/rrazakami/work/WC/ai4wc/notebooks/data_cvn/val'
-    path_to_test = '/home/rrazakami/work/WC/ai4wc/notebooks/data_cvn/test'
+    DATA_ROOT = '../../../dataset/dune_cvn_splitted'
+    path_to_train = f'{DATA_ROOT}/train'
+    path_to_val = f'{DATA_ROOT}/val'
+    path_to_test = f'{DATA_ROOT}/test'
 
+    print(len(os.listdir(path_to_train)), len(os.listdir(path_to_val)), len(os.listdir(path_to_test)))
     img_size = (512, 512)
     patch_size = (16, 16)
     n_channels = 3
@@ -133,9 +136,10 @@ if __name__ == '__main__':
     blocks = 8
     mlp_head_units = [1024, 512]
     n_classes = 3
-    BATCH_SIZE = 8
-    device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-
+    BATCH_SIZE = 2
+    # device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+    device = get_device()
+    
     train_dataset = CVNDataset(root=path_to_train, img_size=img_size)
     val_dataset = CVNDataset(root=path_to_val, img_size=img_size)
     test_dataset = CVNDataset(root=path_to_test, img_size=img_size)
