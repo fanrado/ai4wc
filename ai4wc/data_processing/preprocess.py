@@ -58,12 +58,14 @@ def create_embedding_matrix(patch_vector_size, embedding_dim):
         Create a random embedding matrix to project patch vectors into the embedding space.
     """
     return np.random.randn(patch_vector_size, embedding_dim) * 0.01
+
 # Project the patch vectors into the embedding space : x^i * E
 def project_patches(patch_vectors, embedding_matrix):
     """
         Project the patch vectors into the embedding space using the embedding matrix.
     """
     return np.dot(patch_vectors, embedding_matrix)  # Shape: (num_patches, embedding_dim)
+
 # Create the CLS token and prepend it to the sequence of patch embeddings
 def add_cls_token(patch_embeddings, cls_token):
     """
