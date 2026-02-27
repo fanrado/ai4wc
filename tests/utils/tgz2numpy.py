@@ -32,17 +32,6 @@ def read_tgz_to_numpy(tgz_file_path):
                 print(h5file.keys())
                 data = np.array(h5file[f'1'][subkey])
                 np_show(data, title=f'anode{i}/{subkey}')
-        # with h5py.File(fobj, 'r') as h5file:
-        #     print(h5file.keys())
-        #     keys = list(h5file.keys())
-        #     print(h5file[keys[0]].keys())
-        #     for key in keys:
-        #         subkey = "frame_rebinned_reco"
-        #         data = np.array(h5file[key][subkey])
-        #         print(f'{key}/{subkey} : {data.shape}')
-        #         np_show(data, title=f'{key}/{subkey}')
-        #         break
-                
 
 if __name__ == '__main__':
     '''
