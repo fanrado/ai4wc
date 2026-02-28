@@ -98,6 +98,9 @@ def read_tgz_to_numpy(tgz_file_path, plot_sparsemat=False):
                 fig, axes = plt.subplots(2, 5, figsize=(25, 10))
                 axes = axes.flatten()
                 
+                # Store original limits for reset functionality
+                original_limits = {}
+                
                 # Flag to prevent infinite recursion in event handlers
                 updating = [False]
                 
@@ -142,7 +145,7 @@ def read_tgz_to_numpy(tgz_file_path, plot_sparsemat=False):
                         # Plot sparse matrix as image
                         im = None
                         if plot_sparsemat:
-                            im = ax.imshow(sparse_mat.toarray().T, cmap='viridis', aspect='auto')
+                            im = ax.imshow(sparse_mat.toarray(), cmap='viridis', aspect='auto', origin='lower')
                         else:
                             im = ax.scatter(coords[:, 1], coords[:, 0], c=features, cmap='viridis', s=10)
                         ax.set_title(f'Frame {frame_key}')
@@ -153,6 +156,12 @@ def read_tgz_to_numpy(tgz_file_path, plot_sparsemat=False):
                         ax.callbacks.connect('xlim_changed', on_xlims_change)
                         ax.callbacks.connect('ylim_changed', on_ylims_change)
                         
+                        # Store original limits for reset
+                        original_limits[ax] = {
+                            'xlim': ax.get_xlim(),
+                            'ylim': ax.get_ylim()
+                        }
+                        
                         print(f"  Frame {frame_key} - Shape: {sparse_mat.shape}, Non-zero: {sparse_mat.nnz}")
                         
                     except Exception as e:
@@ -161,6 +170,24 @@ def read_tgz_to_numpy(tgz_file_path, plot_sparsemat=False):
                                ha='center', va='center', transform=ax.transAxes)
                         ax.set_xticks([])
                         ax.set_yticks([])
+                
+                # Override the toolbar's home button to reset all subplots simultaneously
+                toolbar = fig.canvas.manager.toolbar
+                original_home = toolbar.home
+                
+                def custom_home(*args, **kwargs):
+                    """Custom home function that resets all axes simultaneously"""
+                    updating[0] = True
+                    for ax in axes:
+                        if ax in original_limits:
+                            ax.set_xlim(original_limits[ax]['xlim'])
+                            ax.set_ylim(original_limits[ax]['ylim'])
+                    toolbar._nav_stack.clear()
+                    toolbar.push_current()
+                    fig.canvas.draw_idle()
+                    updating[0] = False
+                
+                toolbar.home = custom_home
                 
                 # Adjust layout to make room for colorbar
                 fig.suptitle(f'{filename} - All Frames Sparse Matrix Visualization', fontsize=16, y=0.99)
@@ -182,4 +209,4 @@ if __name__ == '__main__':
     '''
     # tgz_file_path = "001/out_monte-carlo-012502-000001_302040_1_1_20260128T233641Z.tgz"
     tgz_file_path = "out_monte-carlo-013717-000499_304871_97_1_20260224T034018Z.tgz"
-    read_tgz_to_numpy(tgz_file_path=tgz_file_path)
+    read_tgz_to_numpy(tgz_file_path=tgz_file_path, plot_sparsemat=False)
