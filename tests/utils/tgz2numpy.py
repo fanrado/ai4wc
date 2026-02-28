@@ -5,6 +5,7 @@ import numpy as np
 import h5py
 import matplotlib.pyplot as plt
 from scipy.sparse import coo_matrix, csr_matrix
+import click
 
 def np_show(arr, title=None):
     plt.figure(figsize=(10, 10))
@@ -67,7 +68,7 @@ def coords_features_to_sparse(coords, features, shape=None, format='csr'):
     else:
         raise ValueError(f"Unsupported format: {format}. Use 'csr' or 'coo'")
 
-def read_tgz_to_numpy(tgz_file_path, plot_sparsemat=False):
+def read_tgz_file(tgz_file_path, plot_sparsemat=False):
     with tarfile.open(tgz_file_path, 'r:gz') as tar:
         list_data = {}
         for member in tar:
@@ -84,9 +85,22 @@ def read_tgz_to_numpy(tgz_file_path, plot_sparsemat=False):
         # basename = 'monte-carlo-012502-000001_302040_1_1_20260128T233641Z_pixeldata-anode_.h5'
         # for i in range(0,12):
         #     filename = os.path.join(basedir, basename.replace('anode_', f'anode{i}'))
-        for filename in list_data.keys():
-            if 'metadata' in filename:
-                continue
+        list_h5 = [fname for fname in list_data.keys() if fname.endswith('.h5')]
+        metadata_file = [fname for fname in list_data.keys() if 'metadata' in fname][0]
+        # for filename in list_data.keys():
+        #     if 'metadata' in filename:
+        # continue
+        print('==================================')
+        print(f'Processing metadata file: {metadata_file}')
+        with h5py.File(list_data[metadata_file], 'r') as h5file:
+            print(f'Metadata keys: {list(h5file.keys())}')
+            for key in h5file.keys():
+                print(f'Frame {key}: {h5file[key]}')
+                key_str = f"/{key}"
+                print(f"data for {key_str} : {h5file[key][key_str]['metadata'][0]}")
+            # else:
+            #     continue
+        for filename in list_h5:
             print('==================================')
             print(f'Processing file: {filename}')
             with h5py.File(list_data[filename], 'r') as h5file:
@@ -190,7 +204,7 @@ def read_tgz_to_numpy(tgz_file_path, plot_sparsemat=False):
                 toolbar.home = custom_home
                 
                 # Adjust layout to make room for colorbar
-                fig.suptitle(f'{filename} - All Frames Sparse Matrix Visualization', fontsize=16, y=0.99)
+                fig.suptitle(f'{filename} - All Frames', fontsize=16, y=0.99)
                 plt.tight_layout(rect=[0, 0.05, 1, 0.97])
                 
                 # Add a single colorbar for all subplots in a dedicated axis
@@ -203,10 +217,21 @@ def read_tgz_to_numpy(tgz_file_path, plot_sparsemat=False):
                 # data = np.array(h5file[f'1'][subkey])
                 # np_show(data, title=f'anode/{subkey}')
 
+@click.command()
+@click.option('-i', '--input', 'tgz_file_path', type=click.Path(exists=True), 
+              required=True, help='Path to the .tgz file to process')
+@click.option('--plot-sparsemat', is_flag=True, default=False, 
+              help='Plot as sparse matrix instead of scatter plot')
+def main(tgz_file_path, plot_sparsemat):
+    '''
+    Visualize data from a TGZ file containing HDF5 data.
+    
+    TGZ_FILE_PATH: Path to the .tgz file to process
+    
+    From the visualization of each 2d array in anode0, we likely want 
+    the frame_rebinned_reco for the training data.
+    '''
+    read_tgz_file(tgz_file_path=tgz_file_path, plot_sparsemat=plot_sparsemat)
+
 if __name__ == '__main__':
-    '''
-        From the visualization of each 2d array in anode0, we likely want the frame_rebinned_reco for the training data.
-    '''
-    # tgz_file_path = "001/out_monte-carlo-012502-000001_302040_1_1_20260128T233641Z.tgz"
-    tgz_file_path = "out_monte-carlo-013717-000499_304871_97_1_20260224T034018Z.tgz"
-    read_tgz_to_numpy(tgz_file_path=tgz_file_path, plot_sparsemat=False)
+    main()
