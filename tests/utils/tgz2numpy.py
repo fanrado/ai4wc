@@ -67,7 +67,7 @@ def coords_features_to_sparse(coords, features, shape=None, format='csr'):
     else:
         raise ValueError(f"Unsupported format: {format}. Use 'csr' or 'coo'")
 
-def read_tgz_to_numpy(tgz_file_path):
+def read_tgz_to_numpy(tgz_file_path, plot_sparsemat=False):
     with tarfile.open(tgz_file_path, 'r:gz') as tar:
         list_data = {}
         for member in tar:
@@ -87,43 +87,89 @@ def read_tgz_to_numpy(tgz_file_path):
         for filename in list_data.keys():
             if 'metadata' in filename:
                 continue
+            print('==================================')
             print(f'Processing file: {filename}')
             with h5py.File(list_data[filename], 'r') as h5file:
                 subkey = 'frame_rebinned_reco'
+                
                 print(h5file.keys())
-                print(f'h5file["1"][f"{subkey}"].keys() : {h5file["1"][subkey].keys()}')
-                data = h5file[f'1'][subkey]
-                print(data.keys())
-                print(f"coords : {data['coords']}")
-                print(f"features : {data['features']}")
-                coords = np.array(data['coords'])
-                features = np.array(data['features'])
-                print(f"coords shape : {coords.shape}")
-                print(f"features shape : {features.shape}")
                 
-                plt.figure(figsize=(10, 10))
-                plt.scatter(coords[:, 0], coords[:, 1], c=features[:], cmap='viridis')
-                plt.colorbar(label='Feature Value')
-                plt.title(f'{filename} - {subkey}')
-                plt.xlabel('X Coordinate')
-                plt.ylabel('Y Coordinate')                
-                plt.show()
+                # Create figure with 10 subplots (2 rows x 5 columns)
+                fig, axes = plt.subplots(2, 5, figsize=(25, 10))
+                axes = axes.flatten()
                 
-                # Convert to sparse matrix
-                sparse_mat = coords_features_to_sparse(coords, features, format='csr')
-                print(f"\nSparse matrix created:")
-                print(f"  Shape: {sparse_mat.shape}")
-                print(f"  Format: {type(sparse_mat).__name__}")
-                print(f"  Non-zero elements: {sparse_mat.nnz}")
-                print(f"  Sparsity: {(1 - sparse_mat.nnz / (sparse_mat.shape[0] * sparse_mat.shape[1])) * 100:.2f}%")
+                # Flag to prevent infinite recursion in event handlers
+                updating = [False]
                 
-                # Plot sparse matrix as image
-                plt.figure(figsize=(12, 10))
-                plt.imshow(sparse_mat.toarray().T, cmap='viridis', aspect='auto')
-                plt.colorbar(label='Feature Value')
-                plt.title(f'{filename} - Sparse Matrix Visualization')
-                plt.xlabel('Column Index')
-                plt.ylabel('Row Index')
+                def on_xlims_change(event_ax):
+                    """Synchronize x-axis limits across all subplots"""
+                    if updating[0]:
+                        return
+                    updating[0] = True
+                    xlim = event_ax.get_xlim()
+                    for ax in axes:
+                        if ax != event_ax:
+                            ax.set_xlim(xlim)
+                    fig.canvas.draw_idle()
+                    updating[0] = False
+                
+                def on_ylims_change(event_ax):
+                    """Synchronize y-axis limits across all subplots"""
+                    if updating[0]:
+                        return
+                    updating[0] = True
+                    ylim = event_ax.get_ylim()
+                    for ax in axes:
+                        if ax != event_ax:
+                            ax.set_ylim(ylim)
+                    fig.canvas.draw_idle()
+                    updating[0] = False
+                
+                # Process frames 1 through 10
+                for frame_idx in range(1, 11):
+                    frame_key = str(frame_idx)
+                    ax = axes[frame_idx - 1]
+                    
+                    try:
+                        print(f'Processing frame {frame_key}')
+                        data = h5file[frame_key][subkey]
+                        coords = np.array(data['coords'])
+                        features = np.array(data['features'])
+                        
+                        # Convert to sparse matrix
+                        sparse_mat = coords_features_to_sparse(coords, features, format='csr')
+                        
+                        # Plot sparse matrix as image
+                        im = None
+                        if plot_sparsemat:
+                            im = ax.imshow(sparse_mat.toarray().T, cmap='viridis', aspect='auto')
+                        else:
+                            im = ax.scatter(coords[:, 1], coords[:, 0], c=features, cmap='viridis', s=10)
+                        ax.set_title(f'Frame {frame_key}')
+                        ax.set_xlabel('Column Index')
+                        ax.set_ylabel('Row Index')
+                        
+                        # Connect zoom/pan synchronization events
+                        ax.callbacks.connect('xlim_changed', on_xlims_change)
+                        ax.callbacks.connect('ylim_changed', on_ylims_change)
+                        
+                        print(f"  Frame {frame_key} - Shape: {sparse_mat.shape}, Non-zero: {sparse_mat.nnz}")
+                        
+                    except Exception as e:
+                        print(f"  Error processing frame {frame_key}: {e}")
+                        ax.text(0.5, 0.5, f'Frame {frame_key}\nError: {str(e)}', 
+                               ha='center', va='center', transform=ax.transAxes)
+                        ax.set_xticks([])
+                        ax.set_yticks([])
+                
+                # Adjust layout to make room for colorbar
+                fig.suptitle(f'{filename} - All Frames Sparse Matrix Visualization', fontsize=16, y=0.99)
+                plt.tight_layout(rect=[0, 0.05, 1, 0.97])
+                
+                # Add a single colorbar for all subplots in a dedicated axis
+                cbar_ax = fig.add_axes([0.15, 0.02, 0.7, 0.02])  # [left, bottom, width, height]
+                fig.colorbar(im, cax=cbar_ax, label='Feature Value', orientation='horizontal')
+                
                 plt.show()
                 
                 sys.exit()
