@@ -41,4 +41,3 @@ Feel free to fork the repository and submit pull requests.
     - [ ] extraction of an attention map from a vision transformer model
 - [ ] documentation
     - [ ] docstrings
-    - [ ] overleaf documentation : technical background and details 
