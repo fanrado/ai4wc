@@ -1,6 +1,4 @@
-# ai4wc
-
-ai4wc is a python package gathering deep learning models for LArTPC data, developed in teh context of Wire-Cell (WC).
+# ai4wc.
 
 ## Installation
 ### Create a python virtual environment
